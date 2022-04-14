@@ -1,10 +1,12 @@
-import os,sys
+import os
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 from setup.setup_pgd import LinfPGDAttack, attack_over_test_data
 from setup.setup_data import load_filenames_labels, ValData, TrainData
+from setup.setup_loader import CIFAR10
+
 
 class MNIST:
     def __init__(self, root):
@@ -18,20 +20,22 @@ class MNIST:
     
 def loaddata(args):
     if args['dataset'] == 'mnist':
-        train_loader = DataLoader(MNIST(args['root']).train_data, batch_size=args['batch_size'], shuffle=args['train_shuffle'])
-        test_loader = DataLoader(MNIST(args['root']).test_data, batch_size=args['batch_size'], shuffle=False)
+        train_loader = DataLoader(MNIST(args['root_data']).train_data, batch_size=args['batch_size'], shuffle=args['train_shuffle'])
+        test_loader = DataLoader(MNIST(args['root_data']).test_data, batch_size=args['batch_size'], shuffle=False)
     elif args['dataset'] == 'cifar10':
         transform_train = transforms.Compose([
             transforms.RandomCrop(32, padding=4),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
         ])
-
-        trainset = datasets.CIFAR10(root=os.path.join(args['root'],'data'),
-                                train=True,download=False,transform=transform_train)        
+        
+        trainset = CIFAR10(root=os.path.join(args['root_data'],'data'),
+                                 train=True,download=False,transform=transform_train) #return index as well
+        # trainset = datasets.CIFAR10(root=os.path.join(args['root_data'],'data'),
+        #                         train=True,download=False,transform=transform_train)        
         train_loader = DataLoader(trainset, batch_size=args['batch_size'], shuffle=args['train_shuffle'])                
         transform_test = transforms.Compose([transforms.ToTensor()])
-        testset = datasets.CIFAR10(root=os.path.join(args['root'],'data'),
+        testset = datasets.CIFAR10(root=os.path.join(args['root_data'],'data'),
                                 train=False,download=False,transform=transform_test)
         test_loader = DataLoader(testset, batch_size=args['batch_size'], shuffle=False)  
     elif args['dataset'] == 'stl10':
@@ -41,20 +45,20 @@ def loaddata(args):
             transforms.ToTensor()])
         
         transform_test = transforms.Compose([transforms.ToTensor()])
-        trainset = datasets.STL10(root=os.path.join(args['root'],'data'),
+        trainset = datasets.STL10(root=os.path.join(args['root_data'],'data'),
                                  split='train',download=False,transform=transform_train)
-        testset = datasets.STL10(root=os.path.join(args['root'],'data'),
+        testset = datasets.STL10(root=os.path.join(args['root_data'],'data'),
                                 split='test',download=False,transform=transform_test)
         train_loader = DataLoader(trainset, batch_size=args['batch_size'], shuffle=args['train_shuffle'])
         test_loader = DataLoader(testset, batch_size=args['batch_size'], shuffle=False)
     elif args['dataset'] == 'tiny':
-        labels_train = load_filenames_labels('train', args['root'])    
+        labels_train = load_filenames_labels('train', args['root_data'])    
         transform_train = transforms.Compose([transforms.RandomHorizontalFlip(),
                                               transforms.ColorJitter(0.4, 0.4, 0.4),
                                               transforms.ToTensor()])
         train_dataset = TrainData(range(100000), labels_train, transform_train)
         train_loader =  DataLoader(train_dataset, batch_size=args['batch_size'], shuffle=args['train_shuffle'],num_workers=args['num_gpu']) 
-        labels_val = load_filenames_labels('val', args['root'])
+        labels_val = load_filenames_labels('val', args['root_data'])
         transform_test = transforms.Compose([transforms.ToTensor()])
         test_dataset = ValData(range(10000), labels_val, transform_test)
         test_loader = DataLoader(test_dataset, batch_size=args['batch_size'], shuffle=False,num_workers=args['num_gpu'])
@@ -102,3 +106,29 @@ def savefile(file_name, model, dataset):
             os.mkdir(root)
         torch.save(model.state_dict(), os.path.join(root,file_name))
     return
+
+
+def initial_no_back_track(file_name, state_dict, model):
+    import collections
+    new_keys = list(model.state_dict().keys())
+    keys = list(state_dict.keys())
+    new_state_dict = collections.OrderedDict()
+    count = 0
+    for i in range(len(new_keys)):
+        j = i - count
+        key_name = new_keys[i]
+        if 'num_batches_tracked' in key_name:
+            count += 1
+            new_state_dict[new_keys[i]] = model.state_dict()[new_keys[i]]
+            continue
+        new_state_dict[new_keys[i]] = state_dict[keys[j]]
+    model.load_state_dict(new_state_dict)
+    torch.save(model.state_dict(),file_name)  
+    return  
+
+
+
+
+
+
+

@@ -1,5 +1,5 @@
 import os
-os.chdir(r'D:\yaoli\tangent')
+#os.chdir(r'D:\yaoli\tangent')
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
