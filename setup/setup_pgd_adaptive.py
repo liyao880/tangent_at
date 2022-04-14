@@ -73,13 +73,15 @@ class LinfPGDAttack(object):
             if ep is not None:
                 new_diff = []
                 for j in range(ep.shape[0]):
-                    new_diff.append(diff[0].clamp_(-ep[j], ep[j]).unsqueeze(0))
-                new_diff = torch.cat(new_diff,0)
+                    new_diff.append(torch.clamp(diff[j],-ep[j], ep[j]))
+                new_diff = torch.stack(new_diff)
+                diff = new_diff
             else:
                 diff.clamp_(-self.epsilon, self.epsilon)
  
             X.detach().copy_((diff + X_nat).clamp_(0, 1))                               
         return X
+
 
 def adv_train(X, y, model, criterion, adversary, ep=None):
     """

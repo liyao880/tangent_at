@@ -1,5 +1,5 @@
 import os
-#os.chdir(r'C:\Users\yaoli\Documents\Projects\tangent')
+#os.chdir(r'D:\yaoli\tangent')
 import torch
 import argparse
 import numpy as np
@@ -33,7 +33,6 @@ def get_ep(inputs, epsilon, criterion, method, precision=3, rou=True):
 def trainClassifier(args, model, result_dir, train_loader, test_loader, use_cuda=True):    
     if use_cuda:
         model = model.cuda()
-        
     adversary = LinfPGDAttack(epsilon=args['epsilon'], k=args['num_k'], a=args['alpha'])
     optimizer = torch.optim.SGD(model.parameters(),lr=args['lr'],momentum=0.9, weight_decay=args['weight_decay'])  
     train_criterion = nn.CrossEntropyLoss()
@@ -122,15 +121,15 @@ if __name__ == "__main__":
     parser.add_argument("-n", "--num_epoch", type=int, default=100)
     parser.add_argument("-f", "--file_name", default="cifar10_adapt")
     parser.add_argument("-l", "--lr", type=float, default=1e-3)
-    parser.add_argument("--criterion", default='tan', choices=['angle','tan'])
-    parser.add_argument("--criterion", default='rank', choices=['num','rank'])
+    parser.add_argument("--criterion", default='angle', choices=['angle','tan'])
+    parser.add_argument("--method", default='num', choices=['num','rank'])
     parser.add_argument("--round", action="store_true", default=False, help='if true, round epsilon vector')
-    parser.add_argument("--precision", type=int, default=3, help='precision of rounding the epsilon vector')
+    parser.add_argument("--precision", type=int, default=4, help='precision of rounding the epsilon vector')
     parser.add_argument("--init", default=None, help='initial the model with pre-trained one')
     parser.add_argument("--weight_decay", type=float, default=1e-4)
-    parser.add_argument("--root", default='/proj/STOR/yaoli', help='the directory that contains the project folder')
-    parser.add_argument("--root_data", default='/proj/STOR/yaoli', help='the dir that contains the data folder')
-    parser.add_argument("--result_dir", default='/pine/scr/y/a/yaoli/data', help='the working directory that contains AA, AAA')
+    parser.add_argument("--root", default=r'D:\yaoli', help='the directory that contains the project folder')
+    parser.add_argument("--root_data", default=r'D:\yaoli', help='the dir that contains the data folder')
+    parser.add_argument("--result_dir", default=r'D:\yaoli\data', help='the working directory that contains AA, AAA')
     parser.add_argument("--clean", action="store_true", default=False, help='if true, clean training')
     parser.add_argument("--model_folder", default='./models',
                         help="Path to the folder that contains checkpoint.")
